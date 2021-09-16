@@ -31,7 +31,7 @@ int main(){
 
     srand(time(NULL));
     
-    rbtree_t* rbtree = rbtree_init(cmp);
+    rbtree_t* rbtree = rbtree_init(sizeof(int), cmp);
     for(int i = 0; i < SIZE; ++i){
         delete_set[i] = (rand() % 100000) - 50000;
         data_set[i] = (rand() % 50000) - 25000;
@@ -47,16 +47,17 @@ int main(){
     vector<int> excepted_result(temp.begin(), temp.end());
     sort(excepted_result.begin(), excepted_result.end());
     rbtree_traversal(rbtree, store_data);
+    size_t num = rbtree_size(rbtree);
 
     rbtree_destroy(rbtree);
     
-    if(excepted_result.size() != n){
+    if(excepted_result.size() != num){
         cout << "Test Faild" << endl;
         return -1;
     }
 
     int i;
-    for(int i = 0; i < n; ++i){
+    for(i = 0; i < n; ++i){
         if(excepted_result[i] != traversal_result[i]){
             break;
         }

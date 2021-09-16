@@ -15,7 +15,7 @@ void print_int(const void* data){
 }
 int main(){
     int* data = (int*)malloc(sizeof(int) * 10);
-    rbtree_t* tree = rbtree_init(cmp_int);
+    rbtree_t* tree = rbtree_init(sizeof(int), cmp_int);
     for(int i = 0; i < 10; ++i){
         data[i] = i;
         rbtree_insert(tree, &data[i]);

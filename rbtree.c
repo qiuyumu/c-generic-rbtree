@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 #include "rbtree.h"
 
 #define err(str) fprintf(stderr, str)
@@ -14,8 +15,8 @@ static void rbtree_delete_fixup(rbtree_t * tree, rbtree_node_t * current);
 static void rbtree_transplant(rbtree_t* tree, rbtree_node_t* u, rbtree_node_t* v);
 
 
-int rbtree_insert(rbtree_t* tree, void* new_data){
-    if(rbtree_search(tree, new_data)){
+int rbtree_insert(rbtree_t* tree, void* data){
+    if(rbtree_search(tree, data)){
         return 0;
     }
     rbtree_node_t* new_node = (rbtree_node_t*)malloc(sizeof(rbtree_node_t));
@@ -23,10 +24,17 @@ int rbtree_insert(rbtree_t* tree, void* new_data){
         err("rbtree_insert(): Could not allocate memory for red–black node\n");
         return -1;
     }
+    new_node->data = malloc(tree->data_size);
+    if(new_node->data == NULL){
+        free(new_node);
+        err("rbtree_insert(): Could not allocate memory for red–black node\n");       
+        return -1;
+    }
+    memmove(new_node->data, data, tree->data_size);
     int (*cmp)(const void*, const void*) = (int (*)(const void*, const void*))tree->compare;
     rbtree_node_t *x = tree->root, *y = tree->nil;
     while(x != tree->nil){
-        int cmp_result = cmp(x->data, new_data);
+        int cmp_result = cmp(x->data, data);
         y = x;
         if(cmp_result < 0)
             x = x->right;
@@ -37,15 +45,15 @@ int rbtree_insert(rbtree_t* tree, void* new_data){
     if(y == tree->nil)
         tree->root = new_node;
     else{
-        int cmp_reslut = cmp(new_data, y->data);
+        int cmp_reslut = cmp(data, y->data);
         if(cmp_reslut < 0)
             y->left = new_node;
         else
             y->right = new_node;
     }
     new_node->right = new_node->left = tree->nil;
-    new_node->data = new_data;
     new_node->color = Red;
+    tree->size++;
     rbtree_insert_fixup(tree, new_node);
     return 0;
 
@@ -261,12 +269,14 @@ void rbtree_delete(rbtree_t* tree, void* data){
         real_deleted_node->color = deleted_node->color;
 
     }
-
+    free(deleted_node->data);
+    free(deleted_node);
+    tree->size--;
     if(real_deleted_node_color == Black)                                        // 以replacer为根的树黑高与原来相比少了1
         rbtree_delete_fixup(tree, replacer);                                
-    free(deleted_node);
+    
 }
-rbtree_t* rbtree_init(int (*cmp)(const void*, const void*)){
+rbtree_t* rbtree_init(size_t data_size, int (*cmp)(const void*, const void*)){
     rbtree_t* tree = (rbtree_t*)malloc(sizeof(rbtree_t));
     if(tree == NULL){
         err("rbtree_init(): Could not allocate memory for red–black tree\n");
@@ -279,6 +289,8 @@ rbtree_t* rbtree_init(int (*cmp)(const void*, const void*)){
         err("rbtree_init(): Could not allocate memory for NIL node\n");
         return NULL;
     }
+    tree->data_size = data_size;
+    tree->size = 0;
     tree->compare = (void*)cmp;
     nil->color = Black;
     tree->nil = nil;
@@ -302,6 +314,7 @@ static void tree_destroy(rbtree_node_t* node, rbtree_node_t* nil){
     if(node != nil){
         tree_destroy(node->left, nil);
         tree_destroy(node->right, nil);
+        free(node->data);
         free(node);
     }
 }
@@ -311,3 +324,6 @@ void rbtree_destroy(rbtree_t* tree){
     free(tree);
 }
 
+size_t rbtree_size(rbtree_t* tree){
+    return tree->size;
+}
